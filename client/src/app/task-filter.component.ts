@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
   template: `
     <div class="filter">
       <button
+        class="filter-btn"
         *ngFor="let f of filters"
         [class.active]="f === active"
         (click)="select(f)"
@@ -17,9 +18,33 @@ import { CommonModule } from '@angular/common';
     </div>
   `,
   styles: [`
-    .filter { margin-bottom: 1rem; }
-    button { margin-right: .5rem; padding: .5rem 1rem; }
-    .active { font-weight: bold; text-decoration: underline; }
+    .filter {
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+    .filter-btn {
+      padding: 0.5rem 0.75rem;
+      min-width: 2.5rem;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .filter-btn:hover:not(:disabled),
+    .filter-btn:focus:not(:disabled) {
+      border-color: #888;
+    }
+    .filter-btn.active {
+      background: #007bfc;
+      color: #fff;
+      font-weight: bold;
+    }
+    .filter-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
   `]
 })
 export class TaskFilterComponent {
