@@ -1,10 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { TodoService, Todo } from './todo.service';
 import { TaskFilterComponent } from './task-filter.component';
 import { TaskListComponent } from './task-list.component';
 import { PaginationComponent } from './pagination.component';
+import { TaskUpdateService } from './task-update.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -40,7 +42,7 @@ import { PaginationComponent } from './pagination.component';
     h1 { text-align: center; margin-bottom: 1.5rem; }
   `],
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   allTasks: Todo[] = [];
   filteredTasks: Todo[] = [];
   paginatedTasks: Todo[] = [];
@@ -49,13 +51,36 @@ export class AppComponent implements OnInit {
   currentPage = 1;
   pageSize = 10;
 
-  constructor(private todoService: TodoService) {}
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private todoService: TodoService,
+    private updates: TaskUpdateService
+  ) { }
 
   ngOnInit() {
-    this.todoService.fetchTodos().subscribe(todos => {
-      this.allTasks = todos;
-      this.applyFilterAndPagination();
-    });
+    // 1. Fetch initial list
+    this.todoService.fetchTodos()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(todos => {
+        this.allTasks = todos;
+        this.applyFilterAndPagination();
+      });
+
+    // 2. Subscribe to real‐time updates
+    this.updates.getUpdates()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(update => {
+        const idx = this.allTasks.findIndex(t => t.id === update.id);
+        if (idx > -1) {
+          // Replace existing
+          this.allTasks[idx] = { ...this.allTasks[idx], completed: update.completed };
+        } else {
+          // Insert new at front
+          this.allTasks.unshift(update);
+        }
+        this.applyFilterAndPagination();
+      });
   }
 
   onFilterChange(filter: string) {
@@ -70,15 +95,106 @@ export class AppComponent implements OnInit {
   }
 
   private applyFilterAndPagination() {
+    // 1. Filter
     this.filteredTasks = this.allTasks.filter(t => {
-      return this.activeFilter === 'All' ||
-             (this.activeFilter === 'Pending' && !t.completed) ||
-             (this.activeFilter === 'Completed' && t.completed);
+      return this.activeFilter === 'All'
+        || (this.activeFilter === 'Pending' && !t.completed)
+        || (this.activeFilter === 'Completed' && t.completed);
     });
+    // 2. Paginate
     const start = (this.currentPage - 1) * this.pageSize;
     this.paginatedTasks = this.filteredTasks.slice(start, start + this.pageSize);
   }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }
+
+// Code used in Part 2
+
+// import { Component, OnInit } from '@angular/core';
+// import { CommonModule } from '@angular/common';
+// import { ReactiveFormsModule } from '@angular/forms';
+// import { TodoService, Todo } from './todo.service';
+// import { TaskFilterComponent } from './task-filter.component';
+// import { TaskListComponent } from './task-list.component';
+// import { PaginationComponent } from './pagination.component';
+
+// @Component({
+//   selector: 'app-root',
+//   standalone: true,
+//   imports: [
+//     CommonModule,
+//     ReactiveFormsModule,
+//     TaskFilterComponent,
+//     TaskListComponent,
+//     PaginationComponent
+//   ],
+//   template: `
+//     <div class="container">
+//       <h1>Task List</h1>
+//       <app-task-filter
+//         [filters]="['All','Pending','Completed']"
+//         [active]="activeFilter"
+//         (filterChange)="onFilterChange($event)"
+//       ></app-task-filter>
+
+//       <app-task-list [tasks]="paginatedTasks"></app-task-list>
+
+//       <app-pagination
+//         [currentPage]="currentPage"
+//         [pageSize]="pageSize"
+//         [totalItems]="filteredTasks.length"
+//         (pageChange)="onPageChange($event)"
+//       ></app-pagination>
+//     </div>
+//   `,
+//   styles: [`
+//     .container { max-width: 600px; margin: 2rem auto; padding: 1rem; }
+//     h1 { text-align: center; margin-bottom: 1.5rem; }
+//   `],
+// })
+// export class AppComponent implements OnInit {
+//   allTasks: Todo[] = [];
+//   filteredTasks: Todo[] = [];
+//   paginatedTasks: Todo[] = [];
+
+//   activeFilter = 'All';
+//   currentPage = 1;
+//   pageSize = 10;
+
+//   constructor(private todoService: TodoService) {}
+
+//   ngOnInit() {
+//     this.todoService.fetchTodos().subscribe(todos => {
+//       this.allTasks = todos;
+//       this.applyFilterAndPagination();
+//     });
+//   }
+
+//   onFilterChange(filter: string) {
+//     this.activeFilter = filter;
+//     this.currentPage = 1;
+//     this.applyFilterAndPagination();
+//   }
+
+//   onPageChange(page: number) {
+//     this.currentPage = page;
+//     this.applyFilterAndPagination();
+//   }
+
+//   private applyFilterAndPagination() {
+//     this.filteredTasks = this.allTasks.filter(t => {
+//       return this.activeFilter === 'All' ||
+//              (this.activeFilter === 'Pending' && !t.completed) ||
+//              (this.activeFilter === 'Completed' && t.completed);
+//     });
+//     const start = (this.currentPage - 1) * this.pageSize;
+//     this.paginatedTasks = this.filteredTasks.slice(start, start + this.pageSize);
+//   }
+// }
 
 
 // Code used in Part 1
