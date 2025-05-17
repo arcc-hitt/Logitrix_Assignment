@@ -3,6 +3,7 @@
 * [Project Overview](#project-overview)
 * [Tech Stack](#tech-stack)
 * [Repository Structure](#repository-structure)
+* [Local Setup](#local-setup)
 * [Frontend Setup (Client)](#frontend-setup-client)
 
   * [Part 1: Dynamic User Form](#part-1-dynamic-user-form)
@@ -59,6 +60,21 @@ This repository contains two main folders:
 │  └─ ...
 └─ README.md
 ```
+
+---
+
+## Local Setup
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/arcc-hitt/Logitrix_Assignment.git
+   ```
+2. Change into the project directory:
+
+   ```bash
+   cd your-repo
+   ```
 
 ---
 
